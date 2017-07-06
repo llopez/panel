@@ -1,32 +1,17 @@
 local m = {}
 
+local counter = require "counter"
+
 -- private
 local lcd = dofile("lcd1602.lua")(63)
 local itemPos = 1
 local cursorPos = 1
 local lastPos = 1
 local data = {}
-local x = 0
-
-local function resetCounter()
-  lcd:light(1)
-  x = 0
-end
-
-local function incCounter()
-  x = x + 1
-  if x == 30 then
-    lcd:light()
-    x = 0
-  end
-  tmr.create():alarm(1000, tmr.ALARM_SINGLE, function()
-    incCounter()
-  end)
-end
 
 local function log(t)
   for i=1,#t do
-    print(t[i])
+    print(t[i].name)
   end
 end
 
@@ -40,13 +25,21 @@ end
 
 local function draw(d)
   log(d)
-  for i=1, 4 do
-    lcd:put(lcd:locate(i-1, 0), d[i])
+
+  if #d < 4 then
+    limit = #d
+  else
+    limit = 4
+  end
+
+  for i=1, limit do
+    lcd:put(lcd:locate(i-1, 0), d[i].name)
   end
 end
 
 local function moveCursor(r)
-  resetCounter()
+  lcd:light(1)
+  counter.reset()
   lcd:put(lcd:locate(lastPos - 1, 19), " ")
   lcd:put(lcd:locate(r - 1, 19), "<")
   lastPos = r
@@ -61,11 +54,29 @@ end
 -- public
 
 function m.init(d)
+  counter.init(function()
+    lcd:light()
+  end)
+
+  itemPos = 1
+  cursorPos = 1
+  lastPos = 1
   data = d
   lcd:clear()
   draw(data)
   lcd:put(lcd:locate(0, 19), "<")
-  incCounter()
+end
+
+function m.fill(d)
+  lcd:light(1)
+  counter.reset()
+  itemPos = 1
+  cursorPos = 1
+  lastPos = 1
+  data = d
+  lcd:clear()
+  draw(data)
+  lcd:put(lcd:locate(0, 19), "<")
 end
 
 function m.moveDown()
